@@ -1,0 +1,242 @@
+---
+title: "The Importance of SOLID Principles in the Frontend"
+date: "2026-07-11"
+description: "SOLID principles weren't designed for React components, but applying them to the frontend eliminates the same classes of bugs they eliminate in backend code — tight coupling, fragile tests, and components nobody wants to touch."
+tags: ["architecture", "react", "typescript", "best-practices"]
+---
+
+SOLID principles come from object-oriented design, but the problems they solve — fragile coupling, uncontrolled surface area, untestable units — show up everywhere in a frontend codebase. The naming maps poorly to React, but the ideas map precisely.
+
+## S — Single Responsibility
+
+A component should have one reason to change.
+
+The most common violation in frontend code is the "god component" — one file that fetches data, handles loading and error states, owns business logic, and renders JSX. When the API contract changes, the loading UX changes, and the business rule changes, all three hit the same file.
+
+```typescript
+// Violation: one component, three reasons to change
+function UserProfile({ userId }: { userId: string }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/users/${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        // business logic mixed into the component
+        if (data.role === 'admin') data.displayName = `[Admin] ${data.name}`
+        setUser(data)
+        setLoading(false)
+      })
+  }, [userId])
+
+  if (loading) return <Spinner />
+  return <div>{user?.displayName}</div>
+}
+```
+
+Split by reason to change: data fetching in a hook, business logic in a pure function, rendering in a leaf component.
+
+```typescript
+// Pure business logic — testable without React
+function formatDisplayName(user: User): string {
+  return user.role === 'admin' ? `[Admin] ${user.name}` : user.name
+}
+
+// Data concern isolated
+function useUser(userId: string) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    fetch(`/api/users/${userId}`)
+      .then(r => r.json())
+      .then(data => { setUser(data); setLoading(false) })
+  }, [userId])
+  return { user, loading }
+}
+
+// Rendering only
+function UserProfile({ userId }: { userId: string }) {
+  const { user, loading } = useUser(userId)
+  if (loading) return <Spinner />
+  return <div>{user ? formatDisplayName(user) : null}</div>
+}
+```
+
+`formatDisplayName` is now a plain function with a unit test. The hook can be swapped for React Query without touching the component. The component re-renders only when display logic changes.
+
+## O — Open/Closed
+
+Open for extension, closed for modification.
+
+In frontend terms: you should be able to add behavior without editing existing components. The pattern that delivers this is **composition over configuration**.
+
+Consider a `Button` component that grows a `variant` prop every time a new design is needed:
+
+```typescript
+// Closed for extension — every new variant requires editing Button
+function Button({ label, variant }: { label: string; variant: 'primary' | 'danger' | 'ghost' | 'link' }) {
+  const classes = {
+    primary: 'bg-blue-600 text-white',
+    danger: 'bg-red-600 text-white',
+    ghost: 'border border-gray-300',
+    link: 'underline text-blue-600',
+  }
+  return <button className={classes[variant]}>{label}</button>
+}
+```
+
+A composable version extends without modification:
+
+```typescript
+// Open for extension — callers compose new variants
+function Button({ className, children, ...props }: React.ComponentProps<'button'>) {
+  return (
+    <button className={cn('rounded px-4 py-2 font-medium', className)} {...props}>
+      {children}
+    </button>
+  )
+}
+
+// Extension happens at the call site, not inside Button
+const DangerButton = (props: React.ComponentProps<'button'>) => (
+  <Button className="bg-red-600 text-white" {...props} />
+)
+```
+
+Adding a `success` variant never touches `Button`. This is also why design system components should forward `className` and spread `...props` — it's the mechanism that keeps them open for extension.
+
+## L — Liskov Substitution
+
+Subtypes must be substitutable for their base types without breaking correctness.
+
+In React, this applies most clearly to **component contracts**. A specialized component should honour the full interface of the generic one it replaces. If `ImageCard` extends `Card`, passing an `ImageCard` anywhere a `Card` is expected must not break the parent.
+
+The violation looks like this:
+
+```typescript
+// Card accepts onClick
+function Card({ title, onClick }: { title: string; onClick: () => void }) {
+  return <div onClick={onClick}>{title}</div>
+}
+
+// ImageCard drops onClick silently — substitution breaks
+function ImageCard({ title, src }: { title: string; src: string }) {
+  return <div><img src={src} />{title}</div>
+}
+```
+
+Code that maps a list of cards and wires up `onClick` will silently do nothing for `ImageCard` instances. The fix is to honour the contract:
+
+```typescript
+type CardProps = { title: string; onClick: () => void }
+
+function ImageCard({ title, src, onClick }: CardProps & { src: string }) {
+  return <div onClick={onClick}><img src={src} />{title}</div>
+}
+```
+
+TypeScript's structural typing catches most of these at compile time — but only if you define shared prop interfaces explicitly rather than inlining all prop types.
+
+## I — Interface Segregation
+
+Don't force consumers to depend on props they don't use.
+
+A common frontend smell is a component that accepts a large data object when it only reads two fields:
+
+```typescript
+type Post = {
+  id: string
+  title: string
+  body: string
+  author: Author
+  tags: string[]
+  publishedAt: string
+  likes: number
+  // ...
+}
+
+// PostCard forces a full Post even though it only uses title and publishedAt
+function PostCard({ post }: { post: Post }) {
+  return <div>{post.title} — {post.publishedAt}</div>
+}
+```
+
+This couples `PostCard` to the full `Post` type. If `Post` gains a breaking field change, `PostCard` breaks in every test and every usage, even though it doesn't care about the new field.
+
+Narrow the interface to what the component actually needs:
+
+```typescript
+type PostCardProps = {
+  title: string
+  publishedAt: string
+}
+
+function PostCard({ title, publishedAt }: PostCardProps) {
+  return <div>{title} — {publishedAt}</div>
+}
+```
+
+Now `PostCard` is decoupled from `Post`'s evolution. You can render it from a search result, a CMS preview, or a mock in tests — anything that satisfies the narrow type.
+
+<Callout variant="info">
+This is the principle most directly enforced by TypeScript. Narrow prop types are the mechanical expression of interface segregation at the component level.
+</Callout>
+
+## D — Dependency Inversion
+
+Depend on abstractions, not concretions.
+
+In React, the most common violation is importing a specific service directly into a component that renders UI:
+
+```typescript
+// Component depends on the concrete analytics module
+import { analytics } from '@/lib/analytics'
+
+function SignupButton() {
+  return (
+    <button onClick={() => {
+      analytics.track('signup_clicked') // tight coupling to analytics
+      router.push('/signup')
+    }}>
+      Sign up
+    </button>
+  )
+}
+```
+
+Swapping analytics providers, testing without firing real events, or reusing `SignupButton` in a context where analytics isn't initialized all require touching the component.
+
+Invert the dependency through props or context:
+
+```typescript
+type SignupButtonProps = {
+  onSignupClick: () => void
+}
+
+function SignupButton({ onSignupClick }: SignupButtonProps) {
+  return <button onClick={onSignupClick}>Sign up</button>
+}
+
+// Wiring happens at the boundary, not inside the component
+<SignupButton onSignupClick={() => {
+  analytics.track('signup_clicked')
+  router.push('/signup')
+}} />
+```
+
+`SignupButton` now has zero knowledge of analytics, routing, or any other infrastructure. It is a pure UI component testable with a mock function. The caller decides what "sign up clicked" means in context.
+
+The same pattern applies to data fetching: a component that accepts `items` as props is easier to test and reuse than one that calls `fetch` internally. Push side effects to the boundary.
+
+## The Pattern That Ties Them Together
+
+Following SOLID in a React codebase converges on the same structural outcome:
+
+- **Smart/dumb split**: components that touch infrastructure (hooks, fetching, routing) are separated from components that render data they receive as props.
+- **Narrow prop types**: components declare only what they need, decoupled from the full data model.
+- **Composition over configuration**: behaviour extends through composition, not enum props.
+
+This is not a new idea. It's the presentational/container pattern and the compound component pattern — both of which are expressions of SOLID applied to UI components. The principles give you the vocabulary to explain *why* these patterns work, which matters when you're reviewing code and need to articulate why a 400-line component with fifteen props is a problem worth fixing.
+
+The vocabulary also makes the refactor more tractable. Instead of "this component is too big," you can say "this component has four reasons to change — let's split by reason." That's a concrete, actionable diagnosis.
