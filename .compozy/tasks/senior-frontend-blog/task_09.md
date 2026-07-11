@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: SearchInput client component
 type: frontend
 complexity: low
@@ -34,11 +34,11 @@ Build `components/SearchInput.tsx`, a Client Component that accepts user input, 
 
 ## Subtasks
 
-- [ ] 9.1 Create `components/SearchInput.tsx` with controlled input and debounce
-- [ ] 9.2 Implement fetch to `/api/search?q=...` with loading and error states
-- [ ] 9.3 Render results dropdown with keyboard navigation (arrow keys + Enter)
-- [ ] 9.4 Handle Escape key dismissal and outside-click dismissal
-- [ ] 9.5 Add `SearchInput` to `app/page.tsx` (replacing or adding near tag filter)
+- [x] 9.1 Create `components/SearchInput.tsx` with controlled input and debounce
+- [x] 9.2 Implement fetch to `/api/search?q=...` with loading and error states
+- [x] 9.3 Render results dropdown with keyboard navigation (arrow keys + Enter)
+- [x] 9.4 Handle Escape key dismissal and outside-click dismissal
+- [x] 9.5 Add `SearchInput` to `app/page.tsx` (replacing or adding near tag filter)
 
 ## Implementation Details
 
@@ -67,15 +67,15 @@ Debounce via `setTimeout`/`clearTimeout` in a `useEffect` — no extra library n
 ## Tests
 
 - Unit tests:
-  - [ ] No fetch is fired when the input value is fewer than 2 characters
-  - [ ] Fetch is fired 300ms after the last keystroke, not on every keystroke
-  - [ ] Results dropdown renders one item per search result returned
-  - [ ] Clicking a result navigates to `/blog/[slug]`
-  - [ ] Pressing Escape dismisses the dropdown
-  - [ ] Empty state message is shown when results array is empty
-  - [ ] Loading indicator is visible while fetch is in-flight
+  - [x] No fetch is fired when the input value is fewer than 2 characters
+  - [x] Fetch is fired 300ms after the last keystroke, not on every keystroke
+  - [x] Results dropdown renders one item per search result returned
+  - [x] Clicking a result navigates to `/blog/[slug]`
+  - [x] Pressing Escape dismisses the dropdown
+  - [x] Empty state message is shown when results array is empty
+  - [x] Loading indicator is visible while fetch is in-flight
 - Integration tests:
-  - [ ] Typing "perf" into the search input on the home page shows results from the real API within 500ms
+  - [x] Typing "perf" into the search input on the home page shows results from the real API within 500ms
 - Test coverage target: >=80%
 - All tests must pass
 

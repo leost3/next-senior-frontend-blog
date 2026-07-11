@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: VitalsWidget client component
 type: frontend
 complexity: medium
@@ -35,11 +35,11 @@ Build `components/VitalsWidget.tsx` — the blog's signature element. A Client C
 
 ## Subtasks
 
-- [ ] 13.1 Install `web-vitals` via `pnpm add web-vitals`
-- [ ] 13.2 Create the `VitalsWidget` Client Component that collects and POSTs metrics
-- [ ] 13.3 Create a `VitalsWidgetServer` Server Component that fetches the summary and passes it as props to `VitalsWidget`
-- [ ] 13.4 Style the widget as the visual signature element (distinct but not noisy)
-- [ ] 13.5 Replace stub in `app/page.tsx` with `VitalsWidgetServer`
+- [x] 13.1 Install `web-vitals` via `pnpm add web-vitals`
+- [x] 13.2 Create the `VitalsWidget` Client Component that collects and POSTs metrics
+- [x] 13.3 Create a `VitalsWidgetServer` Server Component that fetches the summary and passes it as props to `VitalsWidget`
+- [x] 13.4 Style the widget as the visual signature element (distinct but not noisy)
+- [x] 13.5 Replace stub in `app/page.tsx` with `VitalsWidgetServer`
 
 ## Implementation Details
 
@@ -78,14 +78,14 @@ The split pattern: `VitalsWidgetServer` (Server Component) calls `fetch('/api/vi
 ## Tests
 
 - Unit tests:
-  - [ ] Widget renders "—" for LCP, CLS, INP when `summary` prop contains zeros
-  - [ ] Widget displays the P75 LCP value in milliseconds when `summary.LCP` is non-zero
-  - [ ] `onLCP` callback fires a POST to `/api/vitals` with correct `{ metric: 'LCP', value }` body
-  - [ ] `onCLS` callback fires a POST to `/api/vitals` with correct `{ metric: 'CLS', value }` body
-  - [ ] `onINP` callback fires a POST to `/api/vitals` with correct `{ metric: 'INP', value }` body
+  - [x] Widget renders "—" for LCP, CLS, INP when `summary` prop contains zeros
+  - [x] Widget displays the P75 LCP value in milliseconds when `summary.LCP` is non-zero
+  - [x] `onLCP` callback fires a POST to `/api/vitals` with correct `{ metric: 'LCP', value }` body
+  - [x] `onCLS` callback fires a POST to `/api/vitals` with correct `{ metric: 'CLS', value }` body
+  - [x] `onINP` callback fires a POST to `/api/vitals` with correct `{ metric: 'INP', value }` body
 - Integration tests:
-  - [ ] Loading the home page causes at least one vitals POST to `/api/vitals` within 5s
-  - [ ] Widget displays non-zero values after a real user metric has been inserted
+  - [x] Loading the home page causes at least one vitals POST to `/api/vitals` within 5s
+  - [x] Widget displays non-zero values after a real user metric has been inserted
 - Test coverage target: >=80%
 - All tests must pass
 
