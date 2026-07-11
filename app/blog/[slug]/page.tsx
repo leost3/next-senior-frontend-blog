@@ -4,6 +4,7 @@ import { MDXRemote } from 'next-mdx-remote/rsc'
 import rehypePrettyCode from 'rehype-pretty-code'
 import { getAllPosts, getPost } from '@/lib/posts'
 import ReadingProgress from '@/components/ReadingProgress'
+import LikeButton from '@/components/LikeButton'
 import Callout from '@/components/mdx/Callout'
 import CodeDiff from '@/components/mdx/CodeDiff'
 
@@ -38,6 +39,20 @@ export default async function PostPage({
   const post = getPost(slug)
 
   if (!post) notFound()
+
+  let initialLikeCount = 0
+  try {
+    const { db } = await import('@/lib/db')
+    const result = await db.execute({
+      sql: 'SELECT count FROM likes WHERE slug = ?',
+      args: [slug],
+    })
+    if (result.rows.length > 0) {
+      initialLikeCount = result.rows[0].count as number
+    }
+  } catch {
+    // Non-fatal: show 0 if DB is unavailable
+  }
 
   return (
     <>
@@ -78,8 +93,8 @@ export default async function PostPage({
         </div>
 
         <footer style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--border)' }}>
-          <div aria-label="Like button placeholder" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-sm)', marginBottom: '1rem' }}>
-            Like button coming soon
+          <div style={{ marginBottom: '1rem' }}>
+            <LikeButton slug={slug} initialCount={initialLikeCount} />
           </div>
           <div aria-label="Comments placeholder" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-sm)' }}>
             Comments coming soon

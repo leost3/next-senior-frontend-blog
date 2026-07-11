@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Edge search API route /api/search
 type: backend
 complexity: medium
@@ -34,10 +34,10 @@ Implement the search API route at `app/api/search/route.ts` running on the Verce
 
 ## Subtasks
 
-- [ ] 8.1 Create `app/api/search/route.ts` with `export const runtime = 'edge'`
-- [ ] 8.2 Implement `q` parameter extraction and 400 validation
-- [ ] 8.3 Implement index fetch + in-memory filter with title-weighted scoring
-- [ ] 8.4 Return top 10 results as JSON with `Cache-Control: no-store`
+- [x] 8.1 Create `app/api/search/route.ts` with `export const runtime = 'edge'`
+- [x] 8.2 Implement `q` parameter extraction and 400 validation
+- [x] 8.3 Implement index fetch + in-memory filter with title-weighted scoring
+- [x] 8.4 Return top 10 results as JSON with `Cache-Control: no-store`
 - [ ] 8.5 Verify response time is under 300ms in Vercel preview deployment
 
 ## Implementation Details
@@ -72,13 +72,13 @@ Use `new URL(request.url).searchParams` to extract `q` in the Edge Runtime (no `
 ## Tests
 
 - Unit tests:
-  - [ ] GET `/api/search` without `q` returns 400
-  - [ ] GET `/api/search?q=` (empty string) returns 400
-  - [ ] GET `/api/search?q=react` against a fixture index returns only entries containing "react"
-  - [ ] Results are capped at 10 entries even when more than 10 entries match
-  - [ ] A title match ranks above an excerpt-only match for the same query
-  - [ ] GET `/api/search?q=xyznonexistent` returns an empty array with status 200
-  - [ ] Response includes `Cache-Control: no-store` header
+  - [x] GET `/api/search` without `q` returns 400
+  - [x] GET `/api/search?q=` (empty string) returns 400
+  - [x] GET `/api/search?q=react` against a fixture index returns only entries containing "react"
+  - [x] Results are capped at 10 entries even when more than 10 entries match
+  - [x] A title match ranks above an excerpt-only match for the same query
+  - [x] GET `/api/search?q=xyznonexistent` returns an empty array with status 200
+  - [x] Response includes `Cache-Control: no-store` header
 - Integration tests:
   - [ ] GET `/api/search?q=performance` against the deployed preview returns results within 300ms
 - Test coverage target: >=80%

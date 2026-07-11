@@ -1,0 +1,100 @@
+---
+title: "Zustand vs Server State: How I Draw the Line"
+date: "2026-05-20"
+description: "After three projects where we reached for Zustand by habit and regretted it, I developed a simple rule for when client-side state management is actually the right call."
+tags: ["state-management", "react", "architecture", "nextjs"]
+---
+
+Every React codebase I've inherited has a Zustand (or Redux, or Jotai) store holding data that would be better served by the server. The pattern is always the same: someone needed one piece of shared client state, added a store, and then progressively moved server data into it because it was convenient.
+
+I've been on both sides of this. Here's the rule I use now, and why.
+
+## The Core Distinction
+
+State falls into two categories:
+
+**Server state** — data that lives in a database, needs to be synchronized across clients, or is authoritative on the server. User profiles, blog post content, like counts, comments. If the user refreshes and the state resets but is immediately re-fetched correctly, it's server state.
+
+**UI state** — data that only exists in the current browser session and represents interaction artifacts. Modal open/closed, selected tab, filter values, sidebar collapsed. If the user refreshes and starting from default values is acceptable, it's UI state.
+
+The mistake is treating server state as UI state because it's convenient: fetch once, store in Zustand, read everywhere. This feels like a performance win (one fetch) but creates consistency problems (stale data, cache invalidation, race conditions) that are much harder to fix than the original performance problem.
+
+## Why Next.js App Router Changed My Calculus
+
+With the App Router, React Server Components can fetch data at render time with zero client-side JavaScript. A `PostList` component that reads from the database, a `LikeCount` that queries Turso — these run on the server and deliver HTML.
+
+This eliminates most of the "I need this data everywhere" arguments for client-side stores. Data availability is no longer a client-side problem; it's a server-side rendering problem. The server can compose data from multiple sources and deliver it together.
+
+<CodeDiff
+  language="typescript"
+  before={`// Before: client store pattern
+// hooks/usePosts.ts
+export const usePostStore = create((set) => ({
+  posts: [],
+  loading: false,
+  fetchPosts: async () => {
+    set({ loading: true })
+    const posts = await fetch('/api/posts').then(r => r.json())
+    set({ posts, loading: false })
+  },
+}))
+
+// Every component that needs posts:
+const { posts, fetchPosts } = usePostStore()
+useEffect(() => { fetchPosts() }, [])`}
+  after={`// After: Server Component pattern
+// app/page.tsx
+import { getAllPosts } from '@/lib/posts'
+
+export default async function Home() {
+  const posts = getAllPosts() // runs on server, zero JS shipped
+  return <PostList posts={posts} />
+}`}
+/>
+
+The After version has no loading state to manage, no race conditions, no cache invalidation, and ships zero JavaScript for the data-fetching concern.
+
+## When Zustand Is Still the Right Call
+
+Zustand earns its keep for three cases in my projects:
+
+**1. Cross-component UI state that needs to persist across route changes.** A shopping cart that stays populated while navigating. A multi-step form where step 3 needs step 1's values. A sidebar collapse state that should survive navigating between pages.
+
+**2. Optimistic updates that need rollback.** When a user action needs to be reflected immediately in multiple components before the server responds, and you need a central place to coordinate the rollback if the server action fails.
+
+**3. Real-time subscriptions.** WebSocket events, presence indicators, live cursors. The server pushes updates; the client needs to distribute them across the component tree. Zustand is a clean distribution mechanism here.
+
+Everything else — especially "I need this API data in multiple components" — should go through the server rendering layer.
+
+## The Practical Test
+
+Before adding anything to a store, I ask: if I reload the page with an empty store, does the app work correctly? If yes, it should live on the server. If no (the state is genuinely user-session-specific), it belongs in client state.
+
+A specific example: like counts. My first instinct was a Zustand store: fetch all like counts once, update optimistically on click, distribute to all post cards. But like counts are server state — they change across sessions, they need to be authoritative. The right model is fetching the initial count as part of the server-rendered page (zero JS) and using `useOptimistic` for the local click feedback. No store needed.
+
+```typescript
+// Post page — server-rendered initial count
+const result = await db.execute({
+  sql: 'SELECT count FROM likes WHERE slug = ?',
+  args: [slug],
+})
+const initialCount = result.rows[0]?.count ?? 0
+
+// LikeButton — optimistic update only for local feedback
+const [optimisticCount, addOptimistic] = useOptimistic(
+  initialCount,
+  (state: number) => state + 1
+)
+```
+
+The server owns the number. The client optimistically reflects the click. No store.
+
+## The Trade-off of Eliminating Client Stores
+
+Leaning on server state means more server renders. Every navigation to a post page hits the database for the like count, rather than reading from a cached store. For a personal blog with low traffic this is fine — Turso's HTTP client is fast and the data is fresh. For a high-traffic page with millions of reads, you'd need caching strategy at the server layer.
+
+The win is correctness and simplicity. The cost is you can't avoid thinking about server performance. I consider that a good trade: performance problems are solvable and measurable; state management bugs are subtle and expensive.
+
+## What I Tell Teams
+
+Use Zustand for UI state and real-time subscriptions. Use the server for everything else. The line isn't always obvious, but the test is: does reloading break the user experience in a way that isn't fixable by re-fetching? If yes, it's UI state. If no, move it to the server.

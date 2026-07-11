@@ -20,10 +20,10 @@ function getPostsDir(): string {
   return path.join(process.cwd(), 'content', 'posts')
 }
 
-function parsePost(filePath: string, slug: string): PostMeta | null {
+function parsePost(filePath: string, slug: string, rawContent?: string): PostMeta | null {
   let fileContent: string
   try {
-    fileContent = fs.readFileSync(filePath, 'utf-8')
+    fileContent = rawContent ?? fs.readFileSync(filePath, 'utf-8')
   } catch (err) {
     console.warn(`[posts] Could not read file "${filePath}":`, err)
     return null
@@ -105,7 +105,7 @@ export function getPost(slug: string): Post | null {
     return null
   }
 
-  const meta = parsePost(filePath, slug)
+  const meta = parsePost(filePath, slug, fileContent)
   if (!meta) return null
 
   const { content } = matter(fileContent)

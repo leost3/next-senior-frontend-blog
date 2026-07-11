@@ -59,6 +59,7 @@ describe('ReadingProgress', () => {
     mockScrollable(0, 1000, 600)
     render(<ReadingProgress />)
     const bar = screen.getByRole('progressbar')
-    expect(bar).toBeInTheDocument()
+    const inner = bar.firstElementChild as HTMLElement
+    expect(inner.style.transition).toBe('none')
   })
 })

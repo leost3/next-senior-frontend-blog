@@ -10,7 +10,7 @@ type SearchEntry = {
   excerpt: string
 }
 
-function stripMdx(content: string): string {
+export function stripMdx(content: string): string {
   return content
     .replace(/^(import|export)\s+.*$/gm, '')
     .replace(/<[^>]+\/?>/g, '')
@@ -23,7 +23,7 @@ function stripMdx(content: string): string {
     .trim()
 }
 
-function buildIndex(): SearchEntry[] {
+export function buildIndex(): SearchEntry[] {
   const posts = getAllPosts()
   const entries: SearchEntry[] = []
 
@@ -54,16 +54,20 @@ function buildIndex(): SearchEntry[] {
   return entries
 }
 
-const postsDir = path.join(process.cwd(), 'content', 'posts')
-if (!fs.existsSync(postsDir)) {
-  console.error('[build-search-index] content/posts/ directory not found')
-  process.exit(1)
+export function run(): void {
+  const postsDir = path.join(process.cwd(), 'content', 'posts')
+  if (!fs.existsSync(postsDir)) {
+    console.error('[build-search-index] content/posts/ directory not found')
+    process.exit(1)
+  }
+
+  const index = buildIndex()
+  const outPath = path.join(process.cwd(), 'public', 'search-index.json')
+  fs.mkdirSync(path.dirname(outPath), { recursive: true })
+  fs.writeFileSync(outPath, JSON.stringify(index, null, 2), 'utf-8')
+  console.log(`[build-search-index] Wrote ${index.length} entries to ${outPath}`)
 }
 
-const index = buildIndex()
-const outPath = path.join(process.cwd(), 'public', 'search-index.json')
-
-fs.mkdirSync(path.dirname(outPath), { recursive: true })
-fs.writeFileSync(outPath, JSON.stringify(index, null, 2), 'utf-8')
-
-console.log(`[build-search-index] Wrote ${index.length} entries to ${outPath}`)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  run()
+}

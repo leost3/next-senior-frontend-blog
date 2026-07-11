@@ -46,6 +46,13 @@
   --text-muted: #404040;
   --border:     #e5e5e5;
   --accent:     #0891b2;
+
+  --callout-info-border:   #0891b2;
+  --callout-info-bg:       #ecfeff;
+  --callout-warn-border:   #d97706;
+  --callout-warn-bg:       #fffbeb;
+  --callout-danger-border: #dc2626;
+  --callout-danger-bg:     #fef2f2;
 }
 
 :root.dark,
@@ -56,6 +63,10 @@
   --text-muted: #a3a3a3;
   --border:     #1f1f1f;
   --accent:     #22d3ee;
+
+  --callout-info-bg:       #0c2931;
+  --callout-warn-bg:       #2c1f04;
+  --callout-danger-bg:     #2c0b0b;
 }
 
 body {

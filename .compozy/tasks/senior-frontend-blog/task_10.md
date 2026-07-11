@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Likes — Server Action + LikeButton
 type: frontend
 complexity: medium
@@ -35,9 +35,9 @@ Implement the like feature: `actions/likes.ts` (Server Action that upserts a lik
 
 ## Subtasks
 
-- [ ] 10.1 Create `actions/likes.ts` with `incrementLike(slug)` Server Action
-- [ ] 10.2 Create `components/LikeButton.tsx` with `useOptimistic` for instant count update
-- [ ] 10.3 Add initial like count fetch to `app/blog/[slug]/page.tsx` (replace stub from task_07)
+- [x] 10.1 Create `actions/likes.ts` with `incrementLike(slug)` Server Action
+- [x] 10.2 Create `components/LikeButton.tsx` with `useOptimistic` for instant count update
+- [x] 10.3 Add initial like count fetch to `app/blog/[slug]/page.tsx` (replace stub from task_07)
 - [ ] 10.4 Verify optimistic update reverts correctly if the Server Action throws
 
 ## Implementation Details
@@ -76,9 +76,9 @@ The initial count query in the post page: `db.execute({ sql: 'SELECT count FROM 
 ## Tests
 
 - Unit tests:
-  - [ ] `LikeButton` displays `initialCount` before any interaction
-  - [ ] Clicking `LikeButton` immediately shows `initialCount + 1` (optimistic)
-  - [ ] `LikeButton` is disabled while the Server Action is pending
+  - [x] `LikeButton` displays `initialCount` before any interaction
+  - [x] Clicking `LikeButton` immediately shows `initialCount + 1` (optimistic)
+  - [x] `LikeButton` is disabled while the Server Action is pending
   - [ ] Optimistic count reverts to `initialCount` if `incrementLike` throws
 - Integration tests:
   - [ ] `incrementLike('test-slug')` with no prior row inserts a row with count 1

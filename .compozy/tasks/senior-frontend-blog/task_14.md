@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: 3 seed MDX posts
 type: docs
 complexity: low
@@ -34,9 +34,9 @@ Write three initial MDX posts in `content/posts/` so the blog is never empty at 
 
 ## Subtasks
 
-- [ ] 14.1 Write post 1: performance topic (e.g., why a specific optimization was chosen over alternatives)
-- [ ] 14.2 Write post 2: architecture or state management topic (e.g., a data flow decision)
-- [ ] 14.3 Write post 3: codebase improvement topic (e.g., a refactor decision with measurable outcomes)
+- [x] 14.1 Write post 1: performance topic (e.g., why a specific optimization was chosen over alternatives)
+- [x] 14.2 Write post 2: architecture or state management topic (e.g., a data flow decision)
+- [x] 14.3 Write post 3: codebase improvement topic (e.g., a refactor decision with measurable outcomes)
 - [ ] 14.4 Verify all three posts render correctly at `/blog/[slug]` with no MDX errors
 - [ ] 14.5 Verify `Callout` and `CodeDiff` components render correctly in the rendered posts
 
@@ -71,9 +71,9 @@ Filename convention: use kebab-case matching the post topic (e.g., `understandin
 ## Tests
 
 - Unit tests:
-  - [ ] Each `.mdx` file has valid frontmatter with non-empty `title`, `date`, `description`, and `tags`
-  - [ ] Each file is at least 400 words (validated by `calculateReadingTime` returning >= 2 minutes)
-  - [ ] `tags` field is an array with at least one element in each post
+  - [x] Each `.mdx` file has valid frontmatter with non-empty `title`, `date`, `description`, and `tags`
+  - [x] Each file is at least 400 words (validated by `calculateReadingTime` returning >= 2 minutes)
+  - [x] `tags` field is an array with at least one element in each post
 - Integration tests:
   - [ ] `GET /blog/[slug]` for each of the three posts returns 200 (not 404)
   - [ ] Each post page renders without React errors in the browser console

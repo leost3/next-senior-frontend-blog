@@ -1,0 +1,94 @@
+---
+title: "Understanding React Render Batching: The Trade-off Nobody Talks About"
+date: "2026-06-15"
+description: "React 18's automatic batching reduces re-renders, but it also means UI updates you expected to be immediate can now feel delayed. Here's how I reasoned through when to opt out."
+tags: ["react", "performance", "rendering"]
+---
+
+When React 18 shipped automatic batching, I was excited. Fewer re-renders, same user experience — free wins. Then I hit a subtle bug in a form with dependent fields, and I had to rethink what "automatic" really means.
+
+## What Changed in React 18
+
+Before React 18, batching only happened inside React event handlers. Code like this would cause two separate renders:
+
+```typescript
+setTimeout(() => {
+  setLoading(false)
+  setData(result)
+}, 0)
+```
+
+In React 18, both state updates are batched into one render regardless of context — `setTimeout`, `Promise.then`, native event listeners. React calls this Automatic Batching.
+
+The mechanism is `createRoot`. If you opt into it, you get automatic batching everywhere. If you stay on `ReactDOM.render` (legacy mode), nothing changes.
+
+## The Trade-off I Encountered
+
+I had a form with a dependent select: province determines the list of cities. The sequence was:
+
+1. User selects province
+2. `setProvince(value)` fires
+3. `fetchCities(value)` starts
+4. `setCities([])` clears the old city list
+5. On resolve: `setCities(newList)` populates cities
+
+Before React 18, steps 2 and 4 triggered separate renders. The city select cleared immediately, signalling to the user that province selection was registered. After upgrading to React 18, steps 2 and 4 batched together — still one fewer render — but now steps 2 and 4 happened simultaneously from the user's perspective.
+
+In isolation this sounds fine. But the visual signal was gone: the province changed, the cities stayed populated with old values for the network round-trip duration, then jumped to new values. Users in user testing flagged it as a glitch.
+
+<Callout variant="warn">
+Automatic batching is a correctness optimization for React's scheduler, not a visual design guarantee. If you depend on render timing for UX signals, you need to be explicit about it.
+</Callout>
+
+## Opting Out with `flushSync`
+
+React provides `flushSync` to force synchronous flushing when you actually need it:
+
+```typescript
+import { flushSync } from 'react-dom'
+
+function handleProvinceChange(value: string) {
+  setProvince(value)
+  flushSync(() => {
+    setCities([]) // flush immediately — clears the select before fetch completes
+  })
+  fetchCities(value).then(setCities)
+}
+```
+
+With `flushSync`, the city clear happens in its own synchronous render. The fetch still runs async. Users see the select empty while data loads — the expected signal.
+
+## When to Use flushSync vs Accept Batching
+
+I now reason about this with one question: does the user need to see an intermediate state as feedback that something happened?
+
+If yes — like clearing dependent fields, showing loading spinners tied to specific user actions, or updating an animation synchronously — `flushSync` is the right choice.
+
+If no — like updating multiple counters after a fetch, setting loading + data together, or any state updates where only the final state matters — automatic batching is strictly better. Fewer renders, no visual cost.
+
+## The Deeper Lesson
+
+React 18's batching is correct behavior. The issue was that my component was leaking render-timing assumptions into user experience design. The province change handler was doing too much: it was responsible for both state management and UX signalling, and those two concerns wanted different render timings.
+
+A cleaner refactor extracted the "feedback" concern into explicit UI state:
+
+```typescript
+const [isSwitchingProvince, setIsSwitchingProvince] = useState(false)
+
+async function handleProvinceChange(value: string) {
+  setProvince(value)
+  setIsSwitchingProvince(true)
+  setCities([])
+  const newCities = await fetchCities(value)
+  setCities(newCities)
+  setIsSwitchingProvince(false)
+}
+```
+
+Now the city select renders a loading state based on `isSwitchingProvince`, not based on the race between `setCities([])` and `setCities(newList)`. Batching behavior no longer matters because the UX signal is explicit state, not an artifact of render order.
+
+This is the pattern I reach for now: if you find yourself fighting React's scheduler, it usually means a piece of UI state is implicit and needs to be made explicit.
+
+## Summary
+
+React 18 automatic batching reduces renders by default. The trade-off is that intermediate states you previously saw as "free" now require explicit `flushSync` calls. Before reaching for `flushSync`, ask whether the intermediate state is a UX requirement or an implementation accident. Most of the time it's the latter, and the right fix is explicit UI state rather than forcing synchronous renders.

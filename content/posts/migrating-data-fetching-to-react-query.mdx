@@ -1,0 +1,122 @@
+---
+title: "The Real Cost of Migrating useEffect Fetches to React Query"
+date: "2026-04-10"
+description: "We migrated 40+ useEffect data-fetching patterns to React Query in a large dashboard app. Here's what actually broke, what surprised us, and the tradeoff we almost missed."
+tags: ["react", "codebase", "refactoring", "architecture"]
+---
+
+The pitch for React Query is easy: replace your `useEffect(() => { setLoading(true); fetch(...).then(...) }, [])` boilerplate with a single `useQuery` call and get caching, deduplication, background refetching, and error states for free. We believed the pitch, scheduled three sprints, and migrated a 40-component dashboard.
+
+Here is what we actually learned.
+
+## The Before State
+
+Every data-fetching component followed this pattern:
+
+```typescript
+function DashboardMetrics({ userId }: Props) {
+  const [data, setData] = useState<Metrics | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    fetchMetrics(userId)
+      .then(setData)
+      .catch(setError)
+      .finally(() => setLoading(false))
+  }, [userId])
+
+  if (loading) return <Spinner />
+  if (error) return <ErrorCard error={error} />
+  return <MetricsGrid data={data} />
+}
+```
+
+Forty components. Some with complex dependency arrays, some with cleanup functions for cancelled fetches, some with debounce logic. All with this same shape.
+
+The problems were real: navigating away and back re-fetched data the user had just seen. Opening three widgets on the same page fired three identical API calls. There was no coordination between components fetching the same endpoint with different parameters.
+
+## The Easy Win: Deduplication
+
+The first thing React Query fixed, without any extra work, was request deduplication. Three components calling `useQuery(['metrics', userId])` with the same key only fired one network request. The result was shared from cache. This eliminated a category of load on our backend that we had never quantified.
+
+The migration pattern was mechanical:
+
+```typescript
+function DashboardMetrics({ userId }: Props) {
+  const { data, isPending, error } = useQuery({
+    queryKey: ['metrics', userId],
+    queryFn: () => fetchMetrics(userId),
+  })
+
+  if (isPending) return <Spinner />
+  if (error) return <ErrorCard error={error} />
+  return <MetricsGrid data={data} />
+}
+```
+
+Eighty lines of boilerplate became eight. Clean.
+
+## The Surprise: Background Refetching Broke an Assumption
+
+React Query refetches stale queries when the window regains focus. This is the feature, not a bug — stale data becomes fresh when users return to the tab. But we had a component that rendered an editable data grid. The sequence:
+
+1. User edits a cell (local state update, not yet saved)
+2. User alt-tabs to read something
+3. User returns to the tab
+4. React Query background-refetches, overwriting the edit
+
+We had never handled this in the `useEffect` version because there was no background refetching. The old code had a bug we never knew about (stale data after long absences), and the React Query upgrade exposed a new bug (edits lost on focus regain).
+
+<Callout variant="warn">
+React Query's background refetching is a gift for read-heavy UIs and a hazard for locally-edited data. You must configure `staleTime` and `refetchOnWindowFocus` based on the actual usage pattern of each query, not a global default.
+</Callout>
+
+The fix required thinking through each query's semantics:
+
+```typescript
+// Read-heavy: fresh data on every focus is desirable
+useQuery({
+  queryKey: ['metrics', userId],
+  queryFn: () => fetchMetrics(userId),
+  staleTime: 30_000, // 30s before considered stale
+})
+
+// Editable grid: never refetch automatically while mounted
+useQuery({
+  queryKey: ['grid-data', tableId],
+  queryFn: () => fetchTableData(tableId),
+  staleTime: Infinity,
+  refetchOnWindowFocus: false,
+})
+```
+
+This was two days of audit work we hadn't planned for. Every query needed intentional `staleTime` configuration. The global default (`staleTime: 0`) treats all data as immediately stale, which is correct for some queries and wrong for others.
+
+## The Cost We Almost Missed: Bundle Size
+
+`@tanstack/react-query` is approximately 13 kB gzipped. For a dashboard app loaded by internal users on a corporate network, this is irrelevant. For a public-facing product, it's worth measuring against the actual value delivered.
+
+In our case, the decision was easy: deduplication alone saved more on backend infrastructure costs than the bundle size would ever cost in Core Web Vitals. But I've seen teams add React Query to pages that do a single API call with no sharing, no mutation coordination, no background refresh needs. For those cases, the library is pure overhead.
+
+The test I now apply: if you have fewer than three queries on the page and none of them share data with other components, a well-written `useEffect` is still the right tool.
+
+## What Actually Shipped
+
+After three sprints:
+
+- Network requests from the dashboard dropped approximately 35% due to deduplication
+- Five components that had subtle cleanup bugs (missing abort controllers) were fixed as a side-effect of migration — React Query handles cancellation correctly by default
+- Load time on the metrics page dropped from 1.8s to 1.1s because three sequential fetches became parallel with deduplication
+
+The two-day refetching audit wasn't planned but was the most valuable work: it forced us to document the intended freshness semantics for every API call in the application. That documentation didn't exist before.
+
+## The Trade-off Summary
+
+React Query is the right call when: multiple components share data, mutations need to invalidate related queries, background freshness matters, or you want standardized loading/error state handling across the codebase.
+
+It adds complexity (configuration surface, bundle cost, concepts to onboard) that only pays off at scale. For a small feature with a single fetch, `useEffect` with an abort controller is still readable, testable, and dependency-free.
+
+The migration was worth it for our dashboard. It would not have been worth it for a three-page marketing site.

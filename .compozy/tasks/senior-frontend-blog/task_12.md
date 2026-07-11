@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Vitals API — /api/vitals + /api/vitals/summary
 type: backend
 complexity: medium
@@ -34,11 +34,11 @@ Implement two API routes that power the Web Vitals widget. `POST /api/vitals` is
 
 ## Subtasks
 
-- [ ] 12.1 Create `app/api/vitals/route.ts` (POST, edge runtime) for single metric ingest
-- [ ] 12.2 Create `app/api/vitals/summary/route.ts` (GET, Node.js) with 30-day P75 query
-- [ ] 12.3 Implement P75 calculation for each of the three metric types
-- [ ] 12.4 Add 1-hour `revalidate` cache to the summary route
-- [ ] 12.5 Return zeroed summary when no data exists
+- [x] 12.1 Create `app/api/vitals/route.ts` (POST, edge runtime) for single metric ingest
+- [x] 12.2 Create `app/api/vitals/summary/route.ts` (GET, Node.js) with 30-day P75 query
+- [x] 12.3 Implement P75 calculation for each of the three metric types
+- [x] 12.4 Add 1-hour `revalidate` cache to the summary route
+- [x] 12.5 Return zeroed summary when no data exists
 
 ## Implementation Details
 
@@ -70,11 +70,11 @@ The summary route should call `cache` or use Next.js `unstable_cache` / `revalid
 ## Tests
 
 - Unit tests:
-  - [ ] POST `/api/vitals` with `{ slug: 'test', metric: 'LCP', value: 1200 }` returns 204
-  - [ ] POST `/api/vitals` with missing `metric` field returns 400
-  - [ ] POST `/api/vitals` with `metric: 'FID'` (not in allowed set) returns 400
-  - [ ] P75 of `[100, 200, 300, 400]` returns 300 (index 3 = `Math.floor(4 * 0.75)`)
-  - [ ] Summary returns `{ LCP: 0, CLS: 0, INP: 0 }` when no rows exist
+  - [x] POST `/api/vitals` with `{ slug: 'test', metric: 'LCP', value: 1200 }` returns 204
+  - [x] POST `/api/vitals` with missing `metric` field returns 400
+  - [x] POST `/api/vitals` with `metric: 'FID'` (not in allowed set) returns 400
+  - [x] P75 of `[100, 200, 300, 400]` returns 300 (index 3 = `Math.floor(4 * 0.75)`)
+  - [x] Summary returns `{ LCP: 0, CLS: 0, INP: 0 }` when no rows exist
 - Integration tests:
   - [ ] Inserting 4 LCP samples via POST and then calling GET `/api/vitals/summary` returns the correct P75
   - [ ] Only rows within the last 30 days are included in the P75 calculation

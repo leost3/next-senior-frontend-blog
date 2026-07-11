@@ -5,14 +5,6 @@ import os from 'node:os'
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures')
 
-type SearchEntry = {
-  slug: string
-  title: string
-  description: string
-  tags: string[]
-  excerpt: string
-}
-
 function stripMdx(content: string): string {
   return content
     .replace(/^(import|export)\s+.*$/gm, '')
@@ -60,63 +52,46 @@ describe('search index builder (integration)', () => {
     vi.resetModules()
   })
 
-  it('running against fixture dir produces valid JSON at public/search-index.json', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'search-index-test-'))
-    const publicDir = path.join(tmpDir, 'public')
-    fs.mkdirSync(publicDir)
-
+  it('buildIndex returns one SearchEntry per .mdx fixture file', async () => {
     vi.spyOn(process, 'cwd').mockReturnValue(FIXTURE_DIR)
-
-    const originalWriteFileSync = fs.writeFileSync.bind(fs)
-    const outPath = path.join(publicDir, 'search-index.json')
-
     vi.resetModules()
-    vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
+    const { buildIndex } = await import('../scripts/build-search-index')
+    const entries = buildIndex()
+    expect(Array.isArray(entries)).toBe(true)
+    expect(entries.length).toBe(2)
+    const slugs = entries.map((e) => e.slug)
+    expect(slugs).toContain('first-post')
+    expect(slugs).toContain('second-post')
+  })
 
-    try {
-      const { getAllPosts, getPost } = await import('../lib/posts')
-      const posts = getAllPosts()
-
-      const entries: SearchEntry[] = posts.map((meta) => {
-        const post = getPost(meta.slug)!
-        return {
-          slug: meta.slug,
-          title: meta.title,
-          description: meta.description,
-          tags: meta.tags,
-          excerpt: stripMdx(post.content).slice(0, 500),
-        }
-      })
-
-      originalWriteFileSync(outPath, JSON.stringify(entries, null, 2), 'utf-8')
-
-      const written = JSON.parse(fs.readFileSync(outPath, 'utf-8')) as SearchEntry[]
-      expect(Array.isArray(written)).toBe(true)
-      expect(written.length).toBe(posts.length)
-
-      for (const entry of written) {
-        expect(typeof entry.slug).toBe('string')
-        expect(typeof entry.title).toBe('string')
-        expect(typeof entry.description).toBe('string')
-        expect(Array.isArray(entry.tags)).toBe(true)
-        expect(typeof entry.excerpt).toBe('string')
-        expect(entry.excerpt.length).toBeLessThanOrEqual(500)
-      }
-
-      const slugs = written.map((e) => e.slug)
-      expect(slugs).toContain('first-post')
-      expect(slugs).toContain('second-post')
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true })
+  it('each SearchEntry has the required fields', async () => {
+    vi.spyOn(process, 'cwd').mockReturnValue(FIXTURE_DIR)
+    vi.resetModules()
+    const { buildIndex } = await import('../scripts/build-search-index')
+    const entries = buildIndex()
+    for (const entry of entries) {
+      expect(typeof entry.slug).toBe('string')
+      expect(typeof entry.title).toBe('string')
+      expect(typeof entry.description).toBe('string')
+      expect(Array.isArray(entry.tags)).toBe(true)
+      expect(typeof entry.excerpt).toBe('string')
+      expect(entry.excerpt.length).toBeLessThanOrEqual(500)
     }
   })
 
-  it('output contains one SearchEntry per .mdx file in the posts directory', async () => {
-    vi.spyOn(process, 'cwd').mockReturnValue(FIXTURE_DIR)
+  it('exits with code 1 when content/posts/ directory is missing', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'build-index-test-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(tmpDir)
     vi.resetModules()
-
-    const { getAllPosts } = await import('../lib/posts')
-    const posts = getAllPosts()
-    expect(posts.length).toBe(2)
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('PROCESS_EXIT_1')
+    }) as never)
+    try {
+      const { run } = await import('../scripts/build-search-index')
+      expect(() => run()).toThrow('PROCESS_EXIT_1')
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
   })
 })

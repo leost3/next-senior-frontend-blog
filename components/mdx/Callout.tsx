@@ -8,9 +8,9 @@ type Props = {
 }
 
 const variantStyles: Record<Variant, { border: string; background: string; icon: string }> = {
-  info:   { border: '#0891b2', background: '#ecfeff', icon: 'ℹ' },
-  warn:   { border: '#d97706', background: '#fffbeb', icon: '⚠' },
-  danger: { border: '#dc2626', background: '#fef2f2', icon: '✕' },
+  info:   { border: 'var(--callout-info-border)',   background: 'var(--callout-info-bg)',   icon: 'ℹ' },
+  warn:   { border: 'var(--callout-warn-border)',   background: 'var(--callout-warn-bg)',   icon: '⚠' },
+  danger: { border: 'var(--callout-danger-border)', background: 'var(--callout-danger-bg)', icon: '✕' },
 }
 
 export default function Callout({ variant = 'info', children }: Props) {

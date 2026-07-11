@@ -11,10 +11,10 @@
 | 05 | Layout foundation — design tokens + Header + ThemeToggle | completed | medium | — |
 | 06 | Home page — PostList + TagFilter | completed | medium | task_03, task_05 |
 | 07 | Post page — [slug]/page.tsx + ReadingProgress + MDX components | completed | high | task_03, task_05 |
-| 08 | Edge search API route /api/search | pending | medium | task_04 |
+| 08 | Edge search API route /api/search | completed | medium | task_04 |
 | 09 | SearchInput client component | pending | low | task_08 |
-| 10 | Likes — Server Action + LikeButton | pending | medium | task_02, task_07 |
+| 10 | Likes — Server Action + LikeButton | completed | medium | task_02, task_07 |
 | 11 | Comments — Server Action + CommentForm + CommentList | pending | high | task_02, task_07 |
-| 12 | Vitals API — /api/vitals + /api/vitals/summary | pending | medium | task_02 |
+| 12 | Vitals API — /api/vitals + /api/vitals/summary | completed | medium | task_02 |
 | 13 | VitalsWidget client component | pending | medium | task_12, task_06 |
-| 14 | 3 seed MDX posts | pending | low | task_07 |
+| 14 | 3 seed MDX posts | completed | low | task_07 |

@@ -4,11 +4,14 @@ import { useEffect, useState, useRef } from 'react'
 
 export default function ReadingProgress() {
   const [progress, setProgress] = useState(0)
+  const [prefersReduced] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  )
   const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
     function update() {
       const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
       const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight
@@ -32,7 +35,7 @@ export default function ReadingProgress() {
       window.removeEventListener('scroll', onScroll)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [])
+  }, [prefersReduced])
 
   return (
     <div
@@ -57,7 +60,7 @@ export default function ReadingProgress() {
           height: '100%',
           width: `${progress}%`,
           backgroundColor: 'var(--accent)',
-          transition: 'width 0.1s linear',
+          transition: prefersReduced ? 'none' : 'width 0.1s linear',
         }}
       />
     </div>
