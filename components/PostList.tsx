@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { PostMeta } from '@/lib/posts'
+import { Badge } from '@/components/ui/badge'
 
 type Props = {
   posts: PostMeta[]
@@ -17,55 +18,42 @@ function formatDate(iso: string): string {
 export default function PostList({ posts }: Props) {
   if (posts.length === 0) {
     return (
-      <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-sm)' }}>
+      <p className="font-mono text-sm text-muted-foreground">
         No posts yet. Check back soon.
       </p>
     )
   }
 
   return (
-    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <ul className="flex flex-col gap-8 list-none p-0 m-0">
       {posts.map((post) => (
-        <li key={post.slug} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '2rem' }}>
-          <Link
-            href={`/blog/${post.slug}`}
-            style={{ textDecoration: 'none', color: 'inherit' }}
-          >
-            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, margin: '0 0 0.5rem', color: 'var(--text)' }}>
+        <li key={post.slug} className="border-b border-border pb-8">
+          <Link href={`/blog/${post.slug}`} className="no-underline text-inherit">
+            <h2
+              className="text-xl font-bold text-foreground mb-2"
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}
+            >
               {post.title}
             </h2>
           </Link>
 
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-            <time dateTime={post.date} style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <div className="flex gap-4 items-center mb-3 flex-wrap">
+            <time dateTime={post.date} className="font-mono text-sm text-muted-foreground">
               {formatDate(post.date)}
             </time>
-            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            <span className="font-mono text-sm text-muted-foreground">
               {post.readingTime} min read
             </span>
           </div>
 
-          <p style={{ color: 'var(--text-muted)', margin: '0 0 0.75rem', lineHeight: 1.6 }}>
+          <p className="text-muted-foreground mb-3 leading-relaxed">
             {post.description}
           </p>
 
           {post.tags.length > 0 && (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    fontSize: 'var(--font-size-xs)',
-                    fontFamily: 'var(--font-mono)',
-                    backgroundColor: 'var(--bg-subtle)',
-                    color: 'var(--text-muted)',
-                    padding: '0.125rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  {tag}
-                </span>
+                <Badge key={tag} variant="purple">{tag}</Badge>
               ))}
             </div>
           )}

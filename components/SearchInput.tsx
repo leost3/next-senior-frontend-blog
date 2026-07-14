@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { Input } from '@/components/ui/input'
 
 type SearchResult = {
   slug: string
@@ -104,7 +105,7 @@ export default function SearchInput() {
       ref={containerRef}
       style={{ position: 'relative', width: '100%' }}
     >
-      <input
+      <Input
         type="search"
         role="combobox"
         value={query}
@@ -117,18 +118,6 @@ export default function SearchInput() {
         aria-haspopup="listbox"
         aria-controls={showDropdown ? 'search-results' : undefined}
         aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
-        style={{
-          width: '100%',
-          padding: '0.5rem 0.75rem',
-          fontSize: 'var(--font-size-sm)',
-          fontFamily: 'var(--font-mono)',
-          border: '1px solid var(--border)',
-          borderRadius: '0.375rem',
-          backgroundColor: 'var(--bg)',
-          color: 'var(--text)',
-          outline: 'none',
-          boxSizing: 'border-box',
-        }}
       />
       {showLoading && (
         <span
@@ -140,7 +129,7 @@ export default function SearchInput() {
             top: '50%',
             transform: 'translateY(-50%)',
             fontSize: 'var(--font-size-xs)',
-            color: 'var(--text-muted)',
+            color: 'var(--muted-foreground)',
             fontFamily: 'var(--font-mono)',
             pointerEvents: 'none',
           }}
@@ -159,7 +148,7 @@ export default function SearchInput() {
             left: 0,
             right: 0,
             zIndex: 50,
-            backgroundColor: 'var(--bg)',
+            backgroundColor: 'var(--background)',
             border: '1px solid var(--border)',
             borderRadius: '0.375rem',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -174,7 +163,7 @@ export default function SearchInput() {
             <li
               style={{
                 padding: '0.75rem 1rem',
-                color: 'var(--text-muted)',
+                color: 'var(--muted-foreground)',
                 fontSize: 'var(--font-size-sm)',
                 fontFamily: 'var(--font-mono)',
               }}
@@ -192,7 +181,7 @@ export default function SearchInput() {
                 style={{
                   padding: '0.75rem 1rem',
                   cursor: 'pointer',
-                  backgroundColor: i === activeIndex ? 'var(--bg-subtle)' : 'transparent',
+                  backgroundColor: i === activeIndex ? 'var(--muted)' : 'transparent',
                   borderBottom:
                     i < results.length - 1 ? '1px solid var(--border)' : 'none',
                 }}
@@ -201,7 +190,7 @@ export default function SearchInput() {
                   style={{
                     fontWeight: 600,
                     fontSize: 'var(--font-size-sm)',
-                    color: 'var(--text)',
+                    color: 'var(--foreground)',
                     marginBottom: '0.2rem',
                   }}
                 >
@@ -210,7 +199,7 @@ export default function SearchInput() {
                 <div
                   style={{
                     fontSize: 'var(--font-size-xs)',
-                    color: 'var(--text-muted)',
+                    color: 'var(--muted-foreground)',
                     fontFamily: 'var(--font-mono)',
                   }}
                 >

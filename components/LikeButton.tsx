@@ -2,6 +2,7 @@
 
 import { useOptimistic, useTransition } from 'react'
 import { incrementLike } from '@/actions/likes'
+import { Button } from '@/components/ui/button'
 
 type Props = {
   slug: string
@@ -27,32 +28,16 @@ export default function LikeButton({ slug, initialCount }: Props) {
   }
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="sm"
       onClick={handleClick}
       disabled={isPending}
       aria-label={`Like this post. ${optimisticCount} likes`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        borderRadius: '0.375rem',
-        border: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-subtle)',
-        color: 'var(--text)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--font-size-sm)',
-        cursor: isPending ? 'not-allowed' : 'pointer',
-        opacity: isPending ? 0.7 : 1,
-        transition: 'opacity 0.15s',
-      }}
+      className="font-mono"
     >
-      {isPending ? (
-        <span aria-hidden="true" role="status">⋯</span>
-      ) : (
-        <span aria-hidden="true">♥</span>
-      )}
+      <span aria-hidden="true">{isPending ? '⋯' : '♥'}</span>
       <span>{optimisticCount}</span>
-    </button>
+    </Button>
   )
 }

@@ -60,15 +60,15 @@ export default async function PostPage({
 
       <article style={{ maxWidth: '48rem', margin: '0 auto', padding: '3rem 1.5rem' }}>
         <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: 'var(--font-size-4xl)', fontWeight: 700, lineHeight: 1.2, margin: '0 0 1rem', color: 'var(--text)' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-size-4xl)', fontWeight: 800, lineHeight: 1.15, margin: '0 0 1rem', color: 'var(--foreground)', letterSpacing: '-0.03em' }}>
             {post.title}
           </h1>
 
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-            <time dateTime={post.date} style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            <time dateTime={post.date} style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' }}>
               {new Date(post.date).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
             </time>
-            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' }}>
               {post.readingTime} min read
             </span>
           </div>
@@ -76,7 +76,7 @@ export default async function PostPage({
           {post.tags.length > 0 && (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {post.tags.map((tag) => (
-                <span key={tag} style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)', padding: '0.125rem 0.5rem', borderRadius: '0.25rem', border: '1px solid var(--border)' }}>
+                <span key={tag} style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                   {tag}
                 </span>
               ))}
@@ -96,7 +96,7 @@ export default async function PostPage({
           <div style={{ marginBottom: '1rem' }}>
             <LikeButton slug={slug} initialCount={initialLikeCount} />
           </div>
-          <div aria-label="Comments placeholder" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-sm)' }}>
+          <div aria-label="Comments placeholder" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-sm)' }}>
             Comments coming soon
           </div>
         </footer>

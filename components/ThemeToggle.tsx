@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes'
 import { useSyncExternalStore } from 'react'
+import { Button } from '@/components/ui/button'
 
 function useHydrated() {
   return useSyncExternalStore(
@@ -16,31 +17,22 @@ export default function ThemeToggle() {
   const mounted = useHydrated()
 
   if (!mounted) {
-    return <span aria-hidden="true" style={{ display: 'inline-block', width: '2rem', height: '1.5rem' }} />
+    return <span aria-hidden="true" className="inline-block w-8 h-6" />
   }
 
   const isDark = theme === 'dark'
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="sm"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-pressed={isDark}
-      style={{
-        background: 'none',
-        border: '1px solid var(--border)',
-        borderRadius: '0.375rem',
-        padding: '0.25rem 0.5rem',
-        cursor: 'pointer',
-        color: 'var(--text-muted)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--font-size-xs)',
-        lineHeight: 1.5,
-        transition: 'color 0.15s ease, border-color 0.15s ease',
-      }}
+      className="font-mono text-xs text-muted-foreground"
     >
       {isDark ? 'Light' : 'Dark'}
-    </button>
+    </Button>
   )
 }
