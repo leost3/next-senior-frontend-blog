@@ -4,6 +4,7 @@ import { MDXRemote } from 'next-mdx-remote/rsc'
 import rehypePrettyCode from 'rehype-pretty-code'
 import { getAllPosts, getPost } from '@/lib/posts'
 import ReadingProgress from '@/components/ReadingProgress'
+import BackButton from '@/components/BackButton'
 import LikeButton from '@/components/LikeButton'
 import Callout from '@/components/mdx/Callout'
 import CodeDiff from '@/components/mdx/CodeDiff'
@@ -59,6 +60,7 @@ export default async function PostPage({
       <ReadingProgress />
 
       <article style={{ maxWidth: '48rem', margin: '0 auto', padding: '3rem 1.5rem' }}>
+        <BackButton />
         <header style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--font-size-4xl)', fontWeight: 800, lineHeight: 1.15, margin: '0 0 1rem', color: 'var(--foreground)', letterSpacing: '-0.03em' }}>
             {post.title}
