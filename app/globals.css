@@ -240,6 +240,29 @@ h1, h2, h3, h4 {
   margin: 1.5rem 0;
   border-radius: var(--radius);
   overflow-x: auto;
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.prose pre code {
+  color: inherit;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.prose pre code span {
+  color: var(--shiki-light);
+}
+
+.dark .prose pre code span {
+  color: var(--shiki-dark);
+}
+
+.prose code:not(pre code) {
+  color: var(--foreground);
 }
 
 .prose hr {

@@ -13,7 +13,7 @@ const navLinkStyle: React.CSSProperties = {
 
 export default function Header() {
   return (
-    <header style={{ backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)' }}>
+    <header style={{ backgroundColor: 'var(--background)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 50 }}>
       <div
         style={{
           maxWidth: '64rem',

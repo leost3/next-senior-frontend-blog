@@ -13,7 +13,14 @@ const mdxComponents = { Callout, CodeDiff }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rehypePlugins: any[] = [
-  [rehypePrettyCode, { theme: { dark: 'github-dark', light: 'github-light' } }],
+  [
+    rehypePrettyCode,
+    {
+      theme: { dark: 'github-dark', light: 'github-light' },
+      defaultColor: false,
+      keepBackground: true,
+    },
+  ],
 ]
 
 export async function generateStaticParams() {
@@ -78,7 +85,7 @@ export default async function PostPage({
           {post.tags.length > 0 && (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {post.tags.map((tag) => (
-                <span key={tag} style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                <span key={tag} style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--accent)', color: 'var(--primary)', padding: '0.25rem 0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--primary)' }}>
                   {tag}
                 </span>
               ))}

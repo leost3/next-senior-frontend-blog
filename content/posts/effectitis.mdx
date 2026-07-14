@@ -1,0 +1,466 @@
+---
+title: Your React App probably suffers from effectitis (Real world project analysis)
+description: Do you really need that useEffect over there?
+date: 2026-04-17
+tags:
+  - React
+  - useEffect
+  - Best Practices
+  - Performance
+  - Data Fetching
+  - State Management
+---
+
+> "Effectitis" is a slang term in React development for the over-reliance on `useEffect` to manage component state, data synchronization, or side effects, often causing excessive re-renders, infinite loops, and harder-to-debug, complex code. It stems from treating `useEffect` as a default tool for triggering logic upon state changes, whereas most logic should reside within event handlers or be derived during rendering.
+
+That is so common that even in the react docs they have an article [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect)
+
+And this is common because React is a very unopinionated framework, allowing developers to use some apis and tools they way they want or think is the best.
+
+
+In this article I am gonna show some real world examples I found on the company I work for.
+
+## Why useEffect?
+
+There's the part that many develoepers don't understand. UseEffect It’s a tool with a specific purpose: synchronizing React with things it doesn’t control. It is not used to manage state, which is the most common use case.
+
+I have seen times and times again codebases where effects are used to orchestrate state/prop or a react related element. Every time I stumble upon an effect, I remove it immediately and see what changes. You will notice that most of the times you won't need to use useEffect at all.
+
+## Tutorial examples happen in real wor;d
+Many examples are very simple, but you still find use cases in real world. 
+
+Check this chunk of code down below:
+```tsx
+export const InternetProductCardGroup: React.FC<
+  InternetProductCardGroupProps
+> = (props) => {
+
+  const { products, ...restProps} = props;
+
+  // set number of products to display
+  const [displayCount, setDisplayCount] = useState(0);
+  const [selectedProducts, setSelectedProducts] = useState<CartProduct[]>([]);
+
+  /*
+  Pre-Qual - show the default
+  Post-Qual - use api call to determine how many products to show
+  */
+  useEffect(() => {
+    setDisplayCount(products.length);
+  }, [isUserQualified, products.length]);
+
+  useEffect(() => {
+    setSelectedProducts(products.slice(0, displayCount));
+  }, [products, displayCount]);
+  
+  return (
+    <div className="product-list-container">
+      {selectedProducts.length === 0 ? (
+        <Text element="h1" variant="heading-medium" color="secondary">
+          No products found
+        </Text>
+      ) : (
+        <div className="product-list-scroll">
+          {selectedProducts.map((product) => {...}
+          ...
+          
+```
+
+In this scenario, this component is using an effect to manage internal state, which is a huge anti-pattern. As we have seen before, effects are needed to sync with external things, not to internal react stuff like state or props.
+
+Every time you see a `setState` inside a `useEffect`, be sure it is a code smell. And the solution for this is even simpler, simply **derive from state**.
+ 
+And, by the way, what exactly are these effects doing? It is setting the length of the array into a state, and based on this state it filters the selected products. What?
+Now We have a much more complex and bug prone logic, effects managing states and being fired based on local states, resulting in many issues we will dig in this article, including uncessary re-renders. Oh god.
+
+### You Might Not Need an Effect
+
+I simply removed all these local states and effects, and instead of using selectedProducts from this new state, I simply derived from props.
+
+This was the final result:
+
+```tsx
+export const InternetProductCardGroup: React.FC<
+  InternetProductCardGroupProps
+> = (props) => {
+  const { products, ...restProps} = props;
+
+  return (
+    <div className="product-list-container">
+      {products.length === 0 ? (
+        <Text element="h1" variant="heading-medium" color="secondary">
+          No products found
+        </Text>
+      ) : (
+        <div className="product-list-scroll">
+          {products.map((product) => {...}	
+          ...
+
+```
+
+Just by REMOVING that logic, everything kept working as before, but now with less complexity and bug prone logic.
+
+This is a simple event that I have seen a lot on the web to explain the issues with using an effect when it is not necessary. I thought it was used as a contrived example, but now I can see that even these happens in enterprise level codebases. 
+
+Now let's see another more complex real world example. Same codebase, different component.
+
+### Orchestrating multiple effects and states
+
+This is custom hook used to fetch eligible products. See if you can find any issue:
+
+```ts
+export function useEligibleProducts(categoryCode: string) {
+  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchEligibleProductsForSlid = useCallback(
+    async (slid: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const eligibleKey = ["eligibleProducts", slid, categoryCode] as const;
+        const result = await queryClient.ensureQueryData({
+          queryKey: eligibleKey,
+          queryFn: () => fetchEligibleProducts(slid, categoryCode),
+          staleTime: 5 * 60 * 1000,
+        });
+        return result;
+      } catch (err) {
+        const error =
+          err instanceof Error
+            ? err
+            : new Error("Failed to fetch eligible products");
+        setError(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [queryClient, categoryCode],
+  );
+
+  return { fetchEligibleProductsForSlid, isLoading, error };
+}
+
+
+// Usage in the component
+
+function Products() {
+  const slid = serviceAddress?.SLID ?? "";
+  
+  const { fetchEligibleProductsForSlid, isLoading: eligibleProductsLoading } = useEligibleProducts(ProductCategoryCode.INTERNET);
+  
+  const [eligibleProducts, setEligibleProducts] = useState<Product[] | null>(null);
+  
+useEffect(() => {
+	if (slid) {
+	    fetchEligibleProductsForSlid(slid)
+        .then((products) => {
+          setEligibleProducts(products);
+          onProductApiError(null); 
+        })
+        .catch((error) => {
+          onProductApiError(error);
+          setEligibleProducts(null);
+        });
+    } else {
+      setEligibleProducts(null);
+      onProductApiError(null);
+    }
+  }, [slid, fetchEligibleProductsForSlid, onProductApiError]);
+
+return (...)
+}
+
+```
+
+The whole point of using a library like TanStack is that so we don't need to manually handle states, effects, caching, error handling, etc. Tanstack query solves all these issues, but here we are mixing both approaches.
+
+I imagine that the person wanted to have the option to lazily query the data, but, different from graphQl, tanstack does not have useLazyQuery.
+
+But for the scenario, useEffect is being used to fetch the data on component mount, which misses the whole point of exposing the callback `fetchEligibleProductsForSlid` rather than using `useQuery` on component mount.
+
+
+But regardless, this solution simply added so many issues:
+- Manually updating loading and error states
+- Mixing imperative with declarative
+- Not Leveraging React Query's Built-in Features
+- Manual state updates in async callbacks can cause race conditions if multiple fetches are triggered in quick succession
+- Calling ensureQueryData from a callback means you don't benefit from automatic cache updates, invalidation, or background refetching.
+
+
+You can see here line by line where the issues lie:
+
+```tsx
+const queryClient = useQueryClient();
+  // Manually updating loading and error states
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  // Exposing a fetchEligibleProductsForSlid
+  // Mixing imperative with declarative
+  // Not Leveraging React Query's Built-in Features	
+  const fetchEligibleProductsForSlid = useCallback(
+    async (slid: string) => {
+      // Manually updating loading and error states
+      setIsLoading(true);
+      setError(null);
+      try {
+        const eligibleKey = ["eligibleProducts", slid, categoryCode] as const;
+        //Calling ensureQueryData from a callback means you don't benefit from automatic cache updates, invalidation, or background refetching.
+        const result = await queryClient.ensureQueryData({
+          queryKey: eligibleKey,
+          queryFn: () => fetchEligibleProducts(slid, categoryCode),
+          staleTime: 5 * 60 * 1000,
+        });
+        return result;
+      } catch (err) {
+        const error =
+          err instanceof Error
+            ? err
+            : new Error("Failed to fetch eligible products");
+        //Manual state updates in async callbacks can cause race conditions if multiple fetches are triggered in quick succession
+        setError(error);
+        throw error;
+      } finally {
+      // Manual state updates in async callbacks can cause race conditions if multiple fetches are triggered in quick succession
+        setIsLoading(false);
+      }
+    },
+    [queryClient, categoryCode],
+  );
+
+  return { fetchEligibleProductsForSlid, isLoading, error };
+}
+```
+
+
+
+```tsx
+ const Product () {
+	 const slid = serviceAddress?.SLID ?? "";
+	 const { fetchEligibleProductsForSlid, isLoading: eligibleProductsLoading } = useEligibleProducts(ProductCategoryCode.INTERNET);
+	   //Manual State Management for Async Data
+	   const [eligibleProducts, setEligibleProducts] = useState<Product[] | null>(
+null);
+  
+    useEffect(() => {
+    if (slid) {
+      fetchEligibleProductsForSlid(slid)
+      //Mixing Async Logic with State Updates The .then()/.catch() chains inside useEffect are error-prone and can cause memory leaks if the component unmounts during the fetch.
+        .then((products) => {
+        //Calling setState synchronously within an effect can trigger cascading render
+          setEligibleProducts(products);
+          onProductApiError(null); 
+        })
+        .catch((error) => {
+          onProductApiError(error);
+          setEligibleProducts(null);
+        });
+    } else {
+      setEligibleProducts(null);
+      onProductApiError(null);
+    }
+  }, [slid, fetchEligibleProductsForSlid, onProductApiError]);
+ }
+```
+
+As you can see, useEffect for Data Fetching is an anti pattern. It introuces complexity, does not handle edge case scenarios and can introduce race conditions because there is no automatic cleanup.
+
+Manually syncing `selectedProduct` based on cart state is fragile and can get out of sync.
+
+**No automatic cleanup explanation**
+
+When you use `useEffect` for data fetching, the async operation continues even after the component unmounts. This causes several problems:
+
+**The Problem**
+
+```jsx
+useEffect(() => {
+	fetchEligibleProductsForSlid(slid)
+	.then((products) => {
+		setEligibleProducts(products); // ❌ Component might be unmounted!
+	});
+}, [slid]);
+```
+
+**What happens:**
+
+1. User navigates to page → component mounts → fetch starts
+2. User quickly navigates away → component unmounts
+3. Fetch completes → it tries to call `setEligibleProducts()` on unmounted component
+4. React warns: "Can't perform a React state update on an unmounted component
+
+
+**Memory Leak Risk**
+
+The promise callback holds references to:
+- The component's state setter functions
+- The component instance
+- Any closures/variables
+
+Even though the component is gone, these references prevent garbage collection (which is automatic in javascript), leading to memory leak.
+
+**The Proper Solution with useEffect**
+
+In order to fix the cleanup issue in useEffect, you need to implement cleanup either with cancelled variable or signal abort:
+
+```jsx
+useEffect(() => {
+  let isCancelled = false; // Cleanup flag
+  
+  fetchEligibleProductsForSlid(slid)
+    .then((products) => {
+      if (!isCancelled) { // ✅ Only update if still mounted
+        setEligibleProducts(products);
+      }
+    })
+    .catch((error) => {
+      if (!isCancelled) {
+        setError(error);
+      }
+    });
+  
+  return () => {
+    isCancelled = true; // ✅ Cleanup function
+  };
+}, [slid]);
+```
+
+### Why React Query is Better
+
+The first thing to fix this issue, is to properly use React Query, it  handles ALL of this automatically:
+
+```jsx
+const { data } = useQuery({
+  queryKey: ['eligibleProducts', slid, categoryCode],
+  queryFn: ({ signal }) => fetchEligibleProducts(slid, categoryCode, signal),
+  enabled: !!slid,
+});
+```
+
+**React Query automatically:**
+- ✅ Cancels queries when component unmounts
+- ✅ Prevents state updates after unmount
+- ✅ Passes `AbortSignal` to your fetch function
+- ✅ Cleans up all subscriptions and listeners
+- ✅ No memory leaks
+
+After refactoring to properly use React Query, we got this as final result:
+
+```ts
+export function useImperativeEligibleProducts(
+  slid: string | undefined,
+  categoryCode: string,
+) {
+  const queryResult = useQuery({
+    queryKey: ["eligibleProducts", slid, categoryCode],
+    queryFn: async () => {
+      if (!slid) throw new Error("SLID is required");
+      return await fetchEligibleProducts(slid, categoryCode);
+    },
+    enabled: !!slid,
+    staleTime: STALE_TIME, // 5 minutes
+    gcTime: GC_TIME, // 10 minutes
+  });
+
+  return queryResult;
+}
+```
+
+✅ No manual isLoading state management
+
+✅ No manual error handling
+
+✅ **Single Source of Truth**: React Query tracks loading state automatically
+
+✅ **No Manual Sync Issues**: You can't forget to set isLoading back to `false`
+
+✅ **It Handles Edge Cases**: React Query knows about:
+
+    - Initial loading
+    - Background refetching
+    - Loading while data exists (useful for showing stale data)
+    - `isFetching` vs isLoading distinction
+    - **Race Condition Safe**: If multiple fetches happen, React Query manages the loading state correctly
+
+✅ **Automatic Error Reset**: React Query clears errors on retry or refetch
+
+✅ **No Stale Errors**: Old approach could show previous error even after successful retry
+
+✅ **Better Error Information**. React Query provides:
+
+	-  failureCount - how many times it failed
+	-  failureReason - why it failed
+	-  isError - boolean flag
+	-  Retry Logic Built-in: React Query retries failed requests automatically (3 times by default)
+
+✅ **No Race Conditions - React Query manages concurrent requests automatically**
+
+ ```ts
+ // User types quickly in search box
+fetchEligibleProductsForSlid("abc"); // Request 1 starts
+fetchEligibleProductsForSlid("abcd"); // Request 2 starts
+fetchEligibleProductsForSlid("abcde"); // Request 3 starts
+
+// Network is unpredictable - they might complete out of order:
+// Request 3 completes: setIsLoading(false) ✅
+// Request 1 completes: setIsLoading(false) ✅ (wrong! requests 2 still pending)
+// Request 2 completes: shows old data for "abcd" ❌
+
+
+const { data } = useQuery({ queryKey: ["eligibleProducts", slid, categoryCode], // React Query automatically cancels previous request when slid changes });
+ ```
+✅ Query Cancellation: Old queries are cancelled when parameters change
+
+
+✅ Query Deduplication: Multiple calls with same params = 1 request
+
+✅ Latest Data Guaranteed: Always shows data for current parameters
+
+✅ State Consistency: isLoading, error, and data always match the current query
+
+**Less Boilerplate - No need for useEffect in consumer components**
+
+We made a bit of detour to explain the benefits of using React Query properly. But let's get back to the effectitis issue.
+
+Now that we are using React Query properly, this is how we can fetch data in the component:
+
+```ts
+const { data: eligibleProducts, isLoading: eligibleProductsLoading, error: eligibleProductsError  } =
+  useEligibleProducts(
+    serviceAddress?.SLID,
+    ProductCategoryCode.INTERNET,
+    handleError,
+  );
+```
+
+By eliminating manual state variables, useEffect orchestrating state it:
+
+✅ Prevents synchronization bugs
+
+✅ Reduces Memory Footprint
+    - Each useState creates a state slot in React's fiber tree
+    - Manual states persist even when not needed
+    - React Query's cache is shared across components and cleaned up automatically
+
+✅ Prevents race conditions
+	- React Query manages concurrent requests automatically, so if a component unmounts, React Query will cancel the request
+
+### Conclusion
+
+Many developers, specially more Juniors, still get confused with the usage of `useEffect`. Knowing how React works under the hood  helps a lot to understand this API. 
+
+Concepts like hydration, reconciliation, react render phases are essential to build a solid React application.
+
+Avoid using effects unless it is extremely necessary.
+
+Every time you are about to write a useEffect, stop and thinking for yourself:
+**Is this syncing with an external system?**
+
+External systems: WebSocket, browser APIs (IntersectionObserver,
+navigator.onLine), third-party libraries, DOM measurements, timers.
+
+NOT external systems: props, state, derived values, user events.
+
+Doing this and avoiding unnecessary useEffects will reduce complexity, improve readability and maintainability for future developers.
