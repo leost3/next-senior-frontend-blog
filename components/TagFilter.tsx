@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import PostList from "@/components/PostList"
-import { Button } from "@/components/ui/button"
-import type { PostMeta } from "@/lib/posts"
+import { useState } from "react";
+import PostList from "@/components/PostList";
+import { Button } from "@/components/ui/button";
+import type { PostMeta } from "@/lib/posts";
 
 type Props = {
-  posts: PostMeta[]
-}
+  posts: PostMeta[];
+};
 
 export default function TagFilter({ posts }: Props) {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  const allTags = Array.from(new Set(posts.flatMap((p) => p.tags)))
+  const allTags = Array.from(new Set(posts.flatMap((p) => p.tags)));
   const visible = selectedTag
     ? posts.filter((p) => p.tags.includes(selectedTag))
-    : posts
+    : posts;
 
   return (
     <div>
@@ -33,7 +33,7 @@ export default function TagFilter({ posts }: Props) {
           </Button>
           {allTags.map((tag) => (
             <Button
-              key={tag}
+              key={"tag"}
               type="button"
               variant={selectedTag === tag ? "default" : "outline"}
               size="sm"
@@ -49,5 +49,5 @@ export default function TagFilter({ posts }: Props) {
 
       <PostList posts={visible} />
     </div>
-  )
+  );
 }
